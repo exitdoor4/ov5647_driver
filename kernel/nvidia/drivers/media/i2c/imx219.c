@@ -41,8 +41,11 @@
 #define IMX219_MAX_COARSE_DIFF			0x0004
 
 /* imx219 sensor register address */
-#define IMX219_MODEL_ID_ADDR_MSB		0x0000
-#define IMX219_MODEL_ID_ADDR_LSB		0x0001
+//#define IMX219_MODEL_ID_ADDR_MSB		0x0000
+//#define IMX219_MODEL_ID_ADDR_LSB		0x0001
+#define OV5647_SIG_MSB 0x56
+#define OV5647_SIG_LSB 0x47
+
 #define IMX219_GAIN_ADDR			0x0157
 #define IMX219_FRAME_LENGTH_ADDR_MSB		0x0160
 #define IMX219_FRAME_LENGTH_ADDR_LSB		0x0161
@@ -121,6 +124,8 @@ static inline int imx219_write_reg(struct camera_common_data *s_data,
 {
 	int err = 0; 
 
+	dev_err(s_data->dev, "start imx219_write_reg copy\n");
+
 	err = regmap_write(s_data->regmap, addr, val);
 	if (err)
 		dev_err(s_data->dev, "%s: i2c write failed, 0x%x = %x",
@@ -182,19 +187,20 @@ static int imx219_set_gain(struct tegracam_device *tc_dev, s64 val)
 	/* translate value (from normalized analog gain) */
 	gain = (s16)((256 * mode->control_properties.gain_factor) / val);
 	gain = 256 - gain;
+	dev_err(dev, "imx219_set_gain");
 
 	if (gain < IMX219_MIN_GAIN)
 		gain = IMX219_MAX_GAIN;
 	else if (gain > IMX219_MAX_GAIN)
 		gain = IMX219_MAX_GAIN;
 
-	dev_dbg(dev, "%s: val: %lld (/%d) [times], gain: %u\n",
+	dev_err(dev, "%s: val: %lld (/%d) [times], gain: %u\n",
 		__func__, val, mode->control_properties.gain_factor, gain);
 
 	imx219_get_gain_reg(&gain_reg, (u8)gain);
 	err = imx219_write_reg(s_data, gain_reg.addr, gain_reg.val);
 	if (err)
-		dev_dbg(dev, "%s: gain control error\n", __func__);
+		dev_err(dev, "%s: gain control error\n", __func__);
 
 	return 0;
 }
@@ -212,6 +218,8 @@ static int imx219_set_frame_rate(struct tegracam_device *tc_dev, s64 val)
 	u32 frame_length;
 	int i;
 
+	dev_err(dev, "imx219_set_frame_rate");
+
 	frame_length = (u32)(mode->signal_properties.pixel_clock.val *
 		(u64)mode->control_properties.framerate_factor /
 		mode->image_properties.line_length / val);
@@ -221,7 +229,7 @@ static int imx219_set_frame_rate(struct tegracam_device *tc_dev, s64 val)
 	else if (frame_length > IMX219_MAX_FRAME_LENGTH)
 		frame_length = IMX219_MAX_FRAME_LENGTH;
 
-	dev_dbg(dev,
+	dev_err(dev,
 		"%s: val: %llde-6 [fps], frame_length: %u [lines]\n",
 		__func__, val, frame_length);
 
@@ -229,7 +237,7 @@ static int imx219_set_frame_rate(struct tegracam_device *tc_dev, s64 val)
 	for (i = 0; i < 2; i++) {
 		err = imx219_write_reg(s_data, fl_regs[i].addr, fl_regs[i].val);
 		if (err) {
-			dev_dbg(dev,
+			dev_err(dev,
 				"%s: frame_length control error\n", __func__);
 			return err;
 		}
@@ -257,6 +265,7 @@ static int imx219_set_exposure(struct tegracam_device *tc_dev, s64 val)
 	u32 coarse_time;
 	int i;
 
+	dev_err(dev, "imx219_set_exposure");
 	coarse_time = (val - fine_integ_time_factor)
 		* mode->signal_properties.pixel_clock.val
 		/ mode->control_properties.exposure_factor
@@ -266,12 +275,12 @@ static int imx219_set_exposure(struct tegracam_device *tc_dev, s64 val)
 		coarse_time = IMX219_MIN_COARSE_EXPOSURE;
 	else if (coarse_time > max_coarse_time) {
 		coarse_time = max_coarse_time;
-		dev_dbg(dev,
+		dev_err(dev,
 			"%s: exposure limited by frame_length: %d [lines]\n",
 			__func__, max_coarse_time);
 	}
 
-	dev_dbg(dev, "%s: val: %lld [us], coarse_time: %d [lines]\n",
+	dev_err(dev, "%s: val: %lld [us], coarse_time: %d [lines]\n",
 		__func__, val, coarse_time);
 
 	imx219_get_coarse_integ_time_regs(ct_regs, coarse_time);
@@ -279,7 +288,7 @@ static int imx219_set_exposure(struct tegracam_device *tc_dev, s64 val)
 	for (i = 0; i < 2; i++) {
 		err = imx219_write_reg(s_data, ct_regs[i].addr, ct_regs[i].val);
 		if (err) {
-			dev_dbg(dev,
+			dev_err(dev,
 				"%s: coarse_time control error\n", __func__);
 			return err;
 		}
@@ -304,7 +313,7 @@ static int imx219_power_on(struct camera_common_data *s_data)
 	struct camera_common_pdata *pdata = s_data->pdata;
 	struct device *dev = s_data->dev;
 
-	dev_dbg(dev, "%s: power on\n", __func__);
+	dev_err(dev, "%s: power on\n", __func__);
 	if (pdata && pdata->power_on) {
 		err = pdata->power_on(pw);
 		if (err)
@@ -381,7 +390,7 @@ static int imx219_power_off(struct camera_common_data *s_data)
 	struct camera_common_pdata *pdata = s_data->pdata;
 	struct device *dev = s_data->dev;
 
-	dev_dbg(dev, "%s: power off\n", __func__);
+	dev_err(dev, "%s: power off\n", __func__);
 
 	if (pdata && pdata->power_off) {
 		err = pdata->power_off(pw);
@@ -515,6 +524,8 @@ static struct camera_common_pdata *imx219_parse_dt(
 	int err = 0;
 	int gpio;
 
+	dev_err(dev, "start imx219_parse_dt\n");
+
 	if (!np)
 		return NULL;
 
@@ -540,7 +551,7 @@ static struct camera_common_pdata *imx219_parse_dt(
 
 	err = of_property_read_string(np, "mclk", &board_priv_pdata->mclk_name);
 	if (err)
-		dev_dbg(dev, "mclk name not present, "
+		dev_err(dev, "mclk name not present, "
 			"assume sensor driven externally\n");
 
 	err = of_property_read_string(np, "avdd-reg",
@@ -550,7 +561,7 @@ static struct camera_common_pdata *imx219_parse_dt(
 	err |= of_property_read_string(np, "dvdd-reg",
 		&board_priv_pdata->regulators.dvdd);
 	if (err)
-		dev_dbg(dev, "avdd, iovdd and/or dvdd reglrs. not present, "
+		dev_err(dev, "avdd, iovdd and/or dvdd reglrs. not present, "
 			"assume sensor powered independently\n");
 
 	board_priv_pdata->has_eeprom =
@@ -624,6 +635,9 @@ static int imx219_board_setup(struct imx219 *priv)
 	u8 reg_val[2];
 	int err = 0;
 
+	dev_err(dev, "start_board_setup\n");
+
+
 	if (pdata->mclk_name) {
 		err = camera_common_mclk_enable(s_data);
 		if (err) {
@@ -639,19 +653,19 @@ static int imx219_board_setup(struct imx219 *priv)
 	}
 
 	/* Probe sensor model id registers */
-	err = imx219_read_reg(s_data, IMX219_MODEL_ID_ADDR_MSB, &reg_val[0]);
+	err = imx219_read_reg(s_data, OV5647_SIG_MSB, &reg_val[0]);
 	if (err) {
 		dev_err(dev, "%s: error during i2c read probe+hello (%d)\n",
 			__func__, err);
 		goto err_reg_probe;
 	}
-	err = imx219_read_reg(s_data, IMX219_MODEL_ID_ADDR_LSB, &reg_val[1]);
+	err = imx219_read_reg(s_data, OV5647_SIG_LSB, &reg_val[1]);
 	if (err) {
 		dev_err(dev, "%s: error during i2c read probe (%d)\n",
 			__func__, err);
 		goto err_reg_probe;
 	}
-	if (!((reg_val[0] == 0x02) && reg_val[1] == 0x19))
+	if (!((reg_val[0] == 0x56) && reg_val[1] == 0x47))
 		dev_err(dev, "%s: invalid sensor model id: %x%x\n",
 			__func__, reg_val[0], reg_val[1]);
 
@@ -676,7 +690,7 @@ static int imx219_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 {
 	struct i2c_client *client = v4l2_get_subdevdata(sd);
 
-	dev_dbg(&client->dev, "%s:\n", __func__);
+	dev_err(&client->dev, "%s:\n", __func__);
 
 	return 0;
 }
@@ -693,9 +707,10 @@ static int imx219_probe(struct i2c_client *client,
 	struct imx219 *priv;
 	int err;
 
-	client->addr = 0x36;
+	dev_err(dev, "start imx219_probe\n");
 
-	dev_dbg(dev, "probing v4l2 sensor at addr 0x%0x\n", client->addr);
+
+	dev_err(dev, "probing v4l2 sensor at addr 0x%0x\n", client->addr);
 
 	if (!IS_ENABLED(CONFIG_OF) || !client->dev.of_node)
 		return -EINVAL;
@@ -716,7 +731,8 @@ static int imx219_probe(struct i2c_client *client,
 		return -ENOMEM;
 	}
 
-	printk("start probe priv copy ");
+	dev_err(dev, "start imx219_probe copy\n");
+
 
 	priv->i2c_client = tc_dev->client = client;
 	tc_dev->dev = dev;
@@ -731,7 +747,7 @@ static int imx219_probe(struct i2c_client *client,
 		dev_err(dev, "tegra camera driver registration failed\n");
 		return err;
 	}
-	
+
 	priv->tc_dev = tc_dev;
 	priv->s_data = tc_dev->s_data;
 	priv->subdev = &tc_dev->s_data->subdev;
@@ -750,7 +766,7 @@ static int imx219_probe(struct i2c_client *client,
 		return err;
 	}
 
-	dev_dbg(dev, "detected imx219 sensor\n");
+	dev_err(dev, "detected imx219 sensor\n");
 
 	return 0;
 }
@@ -762,7 +778,6 @@ static int imx219_remove(struct i2c_client *client)
 
 	tegracam_v4l2subdev_unregister(priv->tc_dev);
 	tegracam_device_unregister(priv->tc_dev);
-
 	return 0;
 }
 
