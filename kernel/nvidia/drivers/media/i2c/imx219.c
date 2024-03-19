@@ -155,11 +155,10 @@ static inline int ov5647_write_reg(struct camera_common_data *s_data,
 	u16 addr, u8 val)
 {
 	int err = 0;
-	printk("ov5647_write_reg");
-
+	dev_dbg(s_data->dev, "%s: ov5647_start write_reg  \n", __func__);
 	err = regmap_write(s_data->regmap, addr, val);
 	if (err)
-		dev_err(s_data->dev, "%s: i2c write failed, 0x%x = %x",
+		dev_dbg(s_data->dev, "%s: i2c write failed, 0x%x = %x",
 			__func__, addr, val);
 
 	return err;
@@ -217,7 +216,7 @@ static int ov5647_set_group_hold(struct tegracam_device *tc_dev, bool val)
 				       OV5647_GROUP_HOLD_ADDR, val);
 
 		if (err){
-			dev_dbg(dev, "%s: ov5647_write_reg\n", __func__);
+			dev_dbg(dev, "%s: ov5647_write_reg \n", __func__);
 			goto fail;
 		}
 		
@@ -230,7 +229,7 @@ static int ov5647_set_group_hold(struct tegracam_device *tc_dev, bool val)
 		err = ov5647_write_reg(priv->s_data,
 				       OV5647_GROUP_HOLD_ADDR, 0x11);
 		if (err){
-			dev_dbg(dev, "%s:OV5647_GROUP_HOLD_ADDR 0x11\n", __func__);
+			dev_dbg(dev, "%s: OV5647_GROUP_HOLD_ADDR 0x11\n", __func__);
 			goto fail;
 		}
 		err = ov5647_write_reg(priv->s_data,
@@ -421,7 +420,7 @@ printk("ov5647_power_on");
 	if (pdata && pdata->power_on) {
 		err = pdata->power_on(pw);
 		if (err)
-			dev_err(dev, "%s failed.\n", __func__);
+			dev_dbg(dev, "%s failed.\n", __func__);
 		else
 			pw->state = SWITCH_ON;
 		return err;
@@ -492,7 +491,7 @@ printk("ov5647_power_off");
 	if (pdata && pdata->power_off) {
 		err = pdata->power_off(pw);
 		if (err) {
-			dev_err(dev, "%s failed.\n", __func__);
+			dev_dbg(dev, "%s failed.\n", __func__);
 			return err;
 		} else {
 			goto power_off_done;
@@ -557,7 +556,7 @@ static int ov5647_power_get(struct tegracam_device *tc_dev)
 printk("ov5647_power_get");
 
 	if (!pdata) {
-		dev_err(dev, "pdata missing\n");
+		dev_dbg(dev, "pdata missing\n");
 		return -EFAULT;
 	}
 
@@ -565,14 +564,14 @@ printk("ov5647_power_get");
 		    pdata->mclk_name : "cam_mclk1";
 	pw->mclk = devm_clk_get(dev, mclk_name);
 	if (IS_ERR(pw->mclk)) {
-		dev_err(dev, "unable to get clock %s\n", mclk_name);
+		dev_dbg(dev, "unable to get clock %s\n", mclk_name);
 		return PTR_ERR(pw->mclk);
 	}
 	parentclk_name = pdata->parentclk_name;
 	if (parentclk_name) {
 		parent = devm_clk_get(dev, parentclk_name);
 		if (IS_ERR(parent)) {
-			dev_err(dev, "unable to get parent clock %s",
+			dev_dbg(dev, "unable to get parent clock %s",
 				parentclk_name);
 		} else
 			clk_set_parent(pw->mclk, parent);
@@ -582,7 +581,7 @@ printk("ov5647_power_get");
 	// if (pdata->mclk_name) {
 	// 	pw->mclk = devm_clk_get(dev, pdata->mclk_name);
 	// 	if (IS_ERR(pw->mclk)) {
-	// 		dev_err(dev, "unable to get clock %s\n",
+	// 		dev_dbg(dev, "unable to get clock %s\n",
 	// 			pdata->mclk_name);
 	// 		return PTR_ERR(pw->mclk);
 	// 	}
@@ -590,7 +589,7 @@ printk("ov5647_power_get");
 	// 	if (pdata->parentclk_name) {
 	// 		parent = devm_clk_get(dev, pdata->parentclk_name);
 	// 		if (IS_ERR(parent)) {
-	// 			dev_err(dev, "unable to get parent clock %s",
+	// 			dev_dbg(dev, "unable to get parent clock %s",
 	// 				pdata->parentclk_name);
 	// 		} else
 	// 			clk_set_parent(pw->mclk, parent);
@@ -617,7 +616,7 @@ printk("ov5647_power_get");
 	if (pdata->use_cam_gpio) {
 		err = cam_gpio_register(dev, pw->pwdn_gpio);
 		if (err)
-			dev_err(dev, "%s ERR can't register cam gpio %u!\n",
+			dev_dbg(dev, "%s ERR can't register cam gpio %u!\n",
 				 __func__, pw->pwdn_gpio);
 	} else {
 		if (gpio_is_valid(pw->pwdn_gpio)) {
@@ -661,7 +660,7 @@ static struct camera_common_pdata *ov5647_parse_dt(
 
 // 	match = of_match_device(imx219_of_match, dev);
 // 	if (!match) {
-// 		dev_err(dev, "Failed to find matching dt id\n");
+// 		dev_dbg(dev, "Failed to find matching dt id\n");
 // 		return NULL;
 // 	}
 
@@ -674,7 +673,7 @@ static struct camera_common_pdata *ov5647_parse_dt(
 // 	if (gpio < 0) {
 // 		if (gpio == -EPROBE_DEFER)
 // 			ret = ERR_PTR(-EPROBE_DEFER);
-// 		dev_err(dev, "reset-gpios not found\n");
+// 		dev_dbg(dev, "reset-gpios not found\n");
 // 		goto error;
 // 	}
 // 	board_priv_pdata->reset_gpio = (unsigned int)gpio;
@@ -759,7 +758,7 @@ static int ov5647_start_streaming(struct tegracam_device *tc_dev)
 	return 0;
 
 exit:
-	dev_err(dev, "%s: error starting stream\n", __func__);
+	dev_dbg(dev, "%s: error starting stream\n", __func__);
 	printk("error starting stream\n");
 	return err;
 }
@@ -810,7 +809,7 @@ static int ov5647_stop_streaming(struct tegracam_device *tc_dev)
 	return 0;
 
 exit:
-	dev_err(dev, "%s: error stopping stream\n", __func__);
+	dev_dbg(dev, "%s: error stopping stream\n", __func__);
 	printk("error stopping stream");
 	return err;
 }
@@ -843,14 +842,14 @@ printk("ov5647_board_setup");
 	err = camera_common_mclk_enable(s_data);
 
 	if ( err ) {
-		dev_err(dev, "Error %d turning on mclk\n", err);
+		dev_dbg(dev, "Error %d turning on mclk\n", err);
 		printk("ov5674 Error turning on mclk\n");
 		return err;
 	}
 
 	err = ov5647_power_on(s_data);
 	if (err) {
-		dev_err(dev, "Error %d during power on sensor\n", err);
+		dev_dbg(dev, "Error %d during power on sensor\n", err);
 		printk("ov5647 Error during power on sensor\n");
 
 		return err;
@@ -860,25 +859,25 @@ printk("ov5647_board_setup");
 	// err = ov5647_read_reg(s_data, IMX219_MODEL_ID_ADDR_MSB, &reg_val[0]);
     //     printk("ov5647 reg0 %X",reg_val[0]);
 	// if (err) {
-	// 	dev_err(dev, "%s: error during i2c read probe (%d)\n",
+	// 	dev_dbg(dev, "%s: error during i2c read probe (%d)\n",
 	// 		__func__, err);
 	// 	goto err_reg_probe;
 	// }
 	// err = imx219_read_reg(s_data, IMX219_MODEL_ID_ADDR_LSB, &reg_val[1]);
     //     printk("ov5647 reg1 %X",reg_val[1]);
 	// if (err) {
-	// 	dev_err(dev, "%s: error during i2c read probe (%d)\n",
+	// 	dev_dbg(dev, "%s: error during i2c read probe (%d)\n",
 	// 		__func__, err);
 	// 	goto err_reg_probe;
 	// }
 	// if (!((reg_val[0] == OV5647_SIG_MSB) && reg_val[1] == OV5647_SIG_LSB))
-	// 	dev_err(dev, "%s: invalid sensor model id: %x%x\n",
+	// 	dev_dbg(dev, "%s: invalid sensor model id: %x%x\n",
 	// 		__func__, reg_val[0], reg_val[1]);
 
 // 	/* Sensor fine integration time */
 // 	err = imx219_get_fine_integ_time(priv, &priv->fine_integ_time);
 // 	if (err)
-// 		dev_err(dev, "%s: error querying sensor fine integ. time\n",
+// 		dev_dbg(dev, "%s: error querying sensor fine integ. time\n",
 // 			__func__);
 
 // err_reg_probe:
@@ -945,7 +944,7 @@ printk("ov5647_probe");
 
 	err = tegracam_device_register(tc_dev);
 	if (err) {
-		dev_err(dev, "tegra camera driver registration failed\n");
+		dev_dbg(dev, "tegra camera driver registration failed\n");
 		return err;
 	}
 	priv->tc_dev = tc_dev;
@@ -956,13 +955,13 @@ printk("ov5647_probe");
 	err = ov5647_board_setup(priv);
 	if (err) {
 		tegracam_device_unregister(tc_dev);
-		dev_err(dev, "board setup failed\n");
+		dev_dbg(dev, "board setup failed\n");
 		return err;
 	}
 
 	err = tegracam_v4l2subdev_register(tc_dev, true);
 	if (err) {
-		dev_err(dev, "tegra camera subdev registration failed\n");
+		dev_dbg(dev, "tegra camera subdev registration failed\n");
 		return err;
 	}
 
