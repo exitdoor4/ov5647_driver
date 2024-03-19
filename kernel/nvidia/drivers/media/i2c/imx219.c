@@ -549,7 +549,13 @@ static struct camera_common_pdata *imx219_parse_dt(
 	}
 	board_priv_pdata->reset_gpio = (unsigned int)gpio;
 
+	dev_err(dev, "mclk_name (%d)\n", board_priv_pdata->mclk_name)
+	dev_err(dev, "avdd (%d)\n", &board_priv_pdata->regulators.avdd)
+	dev_err(dev, "iovdd (%d)\n",&board_priv_pdata->regulators.iovdd)
+	dev_err(dev, "dvdd (%d)\n", &board_priv_pdata->regulators.dvdd)
+
 	err = of_property_read_string(np, "mclk", &board_priv_pdata->mclk_name);
+
 	if (err)
 		dev_err(dev, "mclk name not present, "
 			"assume sensor driven externally\n");
@@ -638,6 +644,7 @@ static int imx219_board_setup(struct imx219 *priv)
 	dev_err(dev, "start_board_setup\n");
 
 
+
 	if (pdata->mclk_name) {
 		err = camera_common_mclk_enable(s_data);
 		if (err) {
@@ -699,7 +706,7 @@ static const struct v4l2_subdev_internal_ops imx219_subdev_internal_ops = {
 	.open = imx219_open,
 };
 
-static int imx219_probe(struct i2c_client *client,
+static int imx219_probe(struct  *client,
 	const struct i2c_device_id *id)
 {
 	struct device *dev = &client->dev;
@@ -707,6 +714,8 @@ static int imx219_probe(struct i2c_client *client,
 	struct imx219 *priv;
 	int err;
 
+	client->addr = 0x36;
+	
 	dev_err(dev, "start imx219_probe\n");
 
 
